@@ -36,4 +36,14 @@ bills bill_actions bill_sponsors bill_votes :
 	  psql -d $(PG_DB) -c "ALTER TABLE $@ ALTER COLUMN session TYPE TEXT" && \
 	  cat $< | psql -d $(PG_DB) -c "COPY $@ FROM STDIN WITH CSV HEADER")
 
-
+matrix.csv : bill_votes bill_legislator_votes
+	psql -d $(PG_DB) -c "COPY (SELECT bill_id, name, vote \
+                                   FROM bill_votes INNER JOIN bill_legislator_votes \
+                                   USING (vote_id) \
+                                   WHERE motion='Third Reading' \
+                                   AND vote_chamber='upper' \
+                                   AND session='99th' \
+                                   AND yes_count > 0 \
+                                   AND no_count > 0 \
+                                   ORDER BY bill_id, name) \
+                                   TO STDOUT WITH CSV HEADER" | python rollcall.py > $@
