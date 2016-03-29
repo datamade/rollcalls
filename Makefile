@@ -5,7 +5,7 @@ define check_relation
 endef
 
 .PHONY : all
-all : legislator_roles committees bills bill_actions bill_sponsors bill_votes bill_legislator_votes
+all : legislator_roles committees bills bill_actions bill_sponsors bill_votes bill_legislator_votes legislators
 
 2016-03-08-il-csv.zip :
 	wget http://static.openstates.org/downloads/$@
@@ -36,14 +36,16 @@ bills bill_actions bill_sponsors bill_votes :
 	  psql -d $(PG_DB) -c "ALTER TABLE $@ ALTER COLUMN session TYPE TEXT" && \
 	  cat $< | psql -d $(PG_DB) -c "COPY $@ FROM STDIN WITH CSV HEADER")
 
-matrix.csv : bill_votes bill_legislator_votes
-	psql -d $(PG_DB) -c "COPY (SELECT bill_id, name, vote \
+matrix.csv : bill_votes bill_legislator_votes legislators
+	psql -d $(PG_DB) -c "COPY (SELECT bill_id, \
+                                   name || ' (' || district || '), ' || party, \
+                                   vote \
                                    FROM bill_votes INNER JOIN bill_legislator_votes \
+                                   INNER JOIN legislators USING (leg_id) \
                                    USING (vote_id) \
                                    WHERE motion='Third Reading' \
                                    AND vote_chamber='upper' \
                                    AND session='99th' \
                                    AND yes_count > 0 \
-                                   AND no_count > 0 \
-                                   ORDER BY bill_id, name) \
+                                   AND no_count > 0) \
                                    TO STDOUT WITH CSV HEADER" | python rollcall.py > $@

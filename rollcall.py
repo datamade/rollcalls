@@ -11,12 +11,14 @@ votes = collections.defaultdict(dict)
 legislators = set()
 
 for bill_id, name, vote in reader :
-    votes[bill_id][name] = vote
-    legislators.add(name)
+    if name :
+        votes[bill_id][name] = vote
+        legislators.add(name)
 
+sort_key = lambda x : (x.split(',')[-1], x)
 
 writer = csv.DictWriter(codecs.getwriter(locale.getpreferredencoding())(sys.stdout),
-                        ['bill_id'] + sorted(legislators))
+                        ['bill_id'] + sorted(legislators, key=sort_key))
 writer.writeheader()
 
 for bill_id, voters in votes.items() :
