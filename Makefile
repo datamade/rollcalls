@@ -39,11 +39,11 @@ bills bill_actions bill_sponsors bill_votes :
 matrix.csv : bill_votes bill_legislator_votes legislators
 	psql -d $(PG_DB) -c "COPY (SELECT bill_id, \
                                    name || ' (' || district || '), ' || party, \
-                                   vote \
+                                   vote, motion \
                                    FROM bill_votes INNER JOIN bill_legislator_votes \
                                    INNER JOIN legislators USING (leg_id) \
                                    USING (vote_id) \
-                                   WHERE motion='Third Reading' \
+                                   WHERE motion IN ('Third Reading', 'Amendment', 'Concurrence', 'Motion To Adopt') \
                                    AND vote_chamber='upper' \
                                    AND session='99th' \
                                    AND yes_count > 0 \
